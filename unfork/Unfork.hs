@@ -172,28 +172,30 @@ import qualified Control.Concurrent.STM as STM
 
 data Unfork a c = forall q. Unfork
   { unforkedAction ::         --   The unforked action that we give
-      !( Run q -> a -> c )    --  to the user-provided continuation
+      !( Ctx q -> a -> c )    --  to the user-provided continuation
   , executeOneTask ::
       !( q -> IO () )   -- How the queue worker processes each item
   }
 
-data Run q =
-    Run{ queue :: !(STM.TQueue q), stopper :: !(STM.TVar Status) }
+data Ctx q = Ctx          -- Mutable context for an async unforking
+  { queue :: !(STM.TQueue q)
+  , stopper :: !(STM.TVar Status)
+  }
 
 data Status = Stop | Go          deriving Eq
 
-enqueue :: Run q -> q -> STM ()              --  Write to the queue
-enqueue Run{ queue } = STM.writeTQueue queue
+enqueue :: Ctx q -> q -> STM ()              --  Write to the queue
+enqueue Ctx{ queue } = STM.writeTQueue queue
 
-next :: Run q -> STM q                      --  Read from the queue
-next Run{ queue } = STM.readTQueue queue
+next :: Ctx q -> STM q                      --  Read from the queue
+next Ctx{ queue } = STM.readTQueue queue
 
-stop :: Run q -> IO ()   --  Indicate to the queue loop thread that
-stop Run{ stopper } =    --  it should stop once all tasks are done
+stop :: Ctx q -> IO ()   --  Indicate to the queue loop thread that
+stop Ctx{ stopper } =    --  it should stop once all tasks are done
     atomically (STM.writeTVar stopper Stop)
 
-checkStopped :: Run q -> STM ()     --     STM action that succeeds
-checkStopped Run{ stopper } = do    --  only if 'stop' has been run
+checkStopped :: Ctx q -> STM ()     --     STM action that succeeds
+checkStopped Ctx{ stopper } = do    --  only if 'stop' has been run
     s <- STM.readTVar stopper
     guard (s == Stop)
 
@@ -203,19 +205,20 @@ unforkAsync ::                   --        This is the basis of all
     -> IO b
 unforkAsync Unfork{ unforkedAction, executeOneTask } continue =
   do
-    run <- do
+    ctx <- do
         queue <- STM.newTQueueIO
         stopper <- STM.newTVarIO Go
-        pure Run{ queue, stopper }
+        pure Ctx{ queue, stopper }
 
     let
-        loop = join (atomically (act <|> done))
-        act = next run <&> \x -> do{ executeOneTask x; loop }
-        done = checkStopped run $> pure ()
+      loop = join (atomically (act <|> done))
+        where
+          act = next ctx <&> \x -> do{ executeOneTask x; loop }
+          done = checkStopped ctx $> pure ()
 
     ((), c) <- concurrently loop do
-        x <- continue (unforkedAction run)
-        stop run
+        x <- continue (unforkedAction ctx)
+        stop ctx
         pure x
 
     pure c
@@ -279,7 +282,7 @@ unforkAsyncSTM_ ::
 unforkAsyncSTM_ action =
     unforkAsync Unfork{ unforkedAction, executeOneTask }
   where
-    unforkedAction run arg = enqueue run arg
+    unforkedAction ctx arg = enqueue ctx arg
     executeOneTask a = do{ _ <- action a; pure () }
 
 
@@ -311,7 +314,7 @@ unforkAsyncIO_ ::
 unforkAsyncIO_ action =
     unforkAsync Unfork{ unforkedAction, executeOneTask }
   where
-    unforkedAction run arg = atomically (enqueue run arg)
+    unforkedAction ctx arg = atomically (enqueue ctx arg)
     executeOneTask a = do{ _ <- action a; pure () }
 
 
@@ -344,9 +347,9 @@ unforkAsyncSTM ::
 unforkAsyncSTM action =
     unforkAsync Unfork{ unforkedAction, executeOneTask }
   where
-    unforkedAction run arg = do
+    unforkedAction ctx arg = do
         resultVar <- STM.newTVar Nothing
-        enqueue run Task{ arg, resultVar }
+        enqueue ctx Task{ arg, resultVar }
         pure (STM.readTVar resultVar)
 
     executeOneTask Task{ arg, resultVar } = do
@@ -379,9 +382,9 @@ unforkAsyncIO ::
 unforkAsyncIO action =
     unforkAsync Unfork{ unforkedAction, executeOneTask }
   where
-    unforkedAction run arg = do
+    unforkedAction ctx arg = do
         resultVar <- MVar.newEmptyMVar
-        atomically (enqueue run Task{ arg, resultVar })
+        atomically (enqueue ctx Task{ arg, resultVar })
         pure (Future resultVar)
     executeOneTask Task{ arg, resultVar } = do
           b <- action arg
