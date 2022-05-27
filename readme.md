@@ -36,10 +36,16 @@ The four async functions are `unforkAsyncIO`, `unforkAsyncIO_`, `unforkAsyncSTM`
 and `unforkAsyncSTM_`.
 
 ```haskell
-unforkAsyncIO   :: (a -> IO b) -> ( (a -> IO (Future b))       -> IO c ) -> IO c
-unforkAsyncIO_  :: (a -> IO b) -> ( (a -> IO ())               -> IO c ) -> IO c
-unforkAsyncSTM  :: (a -> IO b) -> ( (a -> STM (STM (Maybe b))) -> IO c ) -> IO c
-unforkAsyncSTM_ :: (a -> IO b) -> ( (a -> STM ())              -> IO c ) -> IO c
+unforkAsyncIO   :: (a -> IO b) -> ( ( a -> IO (Future b)       ) -> IO c ) -> IO c
+unforkAsyncIO_  :: (a -> IO b) -> ( ( a -> IO ()               ) -> IO c ) -> IO c
+unforkAsyncSTM  :: (a -> IO b) -> ( ( a -> STM (STM (Maybe b)) ) -> IO c ) -> IO c
+unforkAsyncSTM_ :: (a -> IO b) -> ( ( a -> STM ()              ) -> IO c ) -> IO c
+--                 │         │    │ │                          │         │
+--                 ╰─────────╯    │ ╰──────────────────────────╯         │
+--                  Original      │      Unforked action                 │
+--                   action       │                                      │
+--                                ╰──────────────────────────────────────╯
+--                                            Continuation
 ```
 
 These functions all internally use a queue. The unforked action does not perform
@@ -107,8 +113,11 @@ respectively. These variables are exposed to the user in a read-only way:
 The two sync functions are `unforkSyncIO` and `unforkSyncIO_`.
 
 ```haskell
-unforkSyncIO  :: (task -> IO result) -> IO (task -> IO result)
-unforkSyncIO_ :: (task -> IO result) -> IO (task -> IO ())
+unforkSyncIO  :: (a -> IO b) -> IO (a -> IO b )
+unforkSyncIO_ :: (a -> IO b) -> IO (a -> IO ())
+--               │         │       │          │
+--               ╰─────────╯       ╰──────────╯
+--             Original action    Unforked action
 ```
 
 These are much simpler than their asynchronous counterparts; there is no queue,
