@@ -311,7 +311,7 @@ unforkAsyncIO action =
 
 -}
 
-{- | Unforks an action by blocking on a global lock.
+{- | Unforks an action by blocking on a global lock
 
     Related functions:
 
@@ -337,7 +337,7 @@ unforkSyncIO action = do
 
 -}
 
-{- | Unforks an action by blocking on a global lock.
+{- | Unforks an action by blocking on a global lock
 
     Related functions:
 
