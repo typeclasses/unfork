@@ -11,10 +11,10 @@ common base
         NamedFieldPuns
     ghc-options: -Wall
     build-depends:
-        async
-      , base
-      , safe-exceptions
-      , stm
+        async ^>= 2.2.2
+      , base ^>= 4.14 || ^>= 4.15 || ^>= 4.16
+      , safe-exceptions ^>= 0.1.7
+      , stm ^>= 2.5
 
 library
     import: base

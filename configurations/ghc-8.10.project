@@ -1,0 +1,7 @@
+packages: unfork, unfork-demo
+
+constraints:
+    async == 2.2.2
+  , base == 4.14.*
+  , safe-exceptions == 0.1.7.0
+  , stm == 2.5.0.0
