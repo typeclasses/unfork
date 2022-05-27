@@ -164,6 +164,97 @@ import qualified Control.Concurrent.MVar as MVar
 import qualified Control.Concurrent.STM as STM
 
 
+{- ━━━━━━━━━━━━━━━━━━━━━  Unfork async  ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    This section constitutes the main contribution of the library.
+
+-}
+
+data Unfork a c =
+    forall q. Unfork
+        { unforkedAction :: !(Run q -> a -> c)
+            -- ^ The unforked version of the action that we
+            --   give to the user-provided continuation
+        , executeOneTask :: !(q -> IO ())
+            -- ^ How the queue worker processes each item
+        }
+
+data Run q =
+    Run{ queue :: !(STM.TQueue q), stopper :: !(STM.TVar Status) }
+
+data Status = Stop | Go          deriving Eq
+
+enqueue :: Run q -> q -> STM ()              --  Write to the queue
+enqueue Run{ queue } = STM.writeTQueue queue
+
+next :: Run q -> STM q                      --  Read from the queue
+next Run{ queue } = STM.readTQueue queue
+
+stop :: Run q -> IO ()   --  Indicate to the queue loop thread that
+stop Run{ stopper } =    --  it should stop once all tasks are done
+    atomically (STM.writeTVar stopper Stop)
+
+checkStopped :: Run q -> STM ()     --     STM action that succeeds
+checkStopped Run{ stopper } = do    --  only if 'stop' has been run
+    s <- STM.readTVar stopper
+    guard (s == Stop)
+
+unforkAsync ::                   --        This is the basis of all
+    Unfork a c                   --  four async unforking functions
+    -> ((a -> c) -> IO b)
+    -> IO b
+unforkAsync Unfork{ unforkedAction, executeOneTask } continue =
+  do
+    run <- do
+        queue <- STM.newTQueueIO
+        stopper <- STM.newTVarIO Go
+        pure Run{ queue, stopper }
+
+    let
+        loop = join (atomically (act <|> done))
+        act = next run <&> \x -> do{ executeOneTask x; loop }
+        done = checkStopped run $> pure ()
+
+    ((), c) <- concurrently loop do
+        x <- continue (unforkedAction run)
+        stop run
+        pure x
+
+    pure c
+
+
+{- ━━━━━━━━━━━━━  Dealing with action results  ━━━━━━━━━━━━━━━━━━━━
+
+    (Task a b) is what we put into the queue instead of simply
+    (a) when the actions' results are desired. A Task contains
+    the (a) value as well as an additional mutable variable of
+    type (b) into which the action's result will be placed. The
+    type of the mutable variable is either MVar or TVar,
+    depending on whether we want access to it via IO or STM.
+
+-}
+
+data Task a b = Task{ arg :: !a, resultVar :: !b }
+
+{- | The result of an action unforked by 'unforkAsyncIO'
+
+    At first the result will be unavailable, during which time
+    'await' will block and 'poll' will return 'Nothing'. When
+    the action completes, 'await' will return its result and
+    'poll' will return 'Just'.
+-}
+data Future result = Future (MVar.MVar result)
+
+-- | Block until an action completes
+await :: Future result -> IO result
+await (Future v) = MVar.readMVar v
+
+-- | Returns 'Just' an action's result, or 'Nothing' if the
+-- action is not yet complete
+poll :: Future result -> IO (Maybe result)
+poll (Future v) = MVar.tryReadMVar v
+
+
 {- ━━━━━  STM, asynchronous, with task results discarded  ━━━━━━━━━
 
     Discarding results makes this function simpler than those that
@@ -311,7 +402,7 @@ unforkAsyncIO action =
 
 -}
 
-{- | Unforks an action by blocking on a global lock
+{- | Unforks an action by blocking on a global mutex lock
 
     Related functions:
 
@@ -325,9 +416,9 @@ unforkSyncIO ::
     -> IO (task -> IO result)
         -- ^ The unforked action
 unforkSyncIO action = do
-    lock <- MVar.newMVar Lock
+    lock <- MVar.newMVar ()
     pure \x ->
-        bracket (MVar.takeMVar lock) (MVar.putMVar lock) \Lock ->
+        bracket (MVar.takeMVar lock) (MVar.putMVar lock) \() ->
             action x
 
 
@@ -337,7 +428,8 @@ unforkSyncIO action = do
 
 -}
 
-{- | Unforks an action by blocking on a global lock
+{- | Unforks an action by blocking on a global mutex lock,
+     discarding the action's result
 
     Related functions:
 
@@ -354,78 +446,3 @@ unforkSyncIO_ action =
     unforkSyncIO \x -> do
         _ <- action x
         pure ()
-
-
-{- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -}
-
-data Unfork a c =
-    forall q. Unfork
-        { unforkedAction :: !(Run q -> a -> c)
-            -- ^ The unforked version of the action that we
-            --   give to the user-provided continuation
-        , executeOneTask :: !(q -> IO ())
-            -- ^ How the queue worker processes each item
-        }
-
-data Task a b = Task{ arg :: !a, resultVar :: !b }
-
-data Run q =
-    Run{ queue :: !(STM.TQueue q), stopper :: !(STM.TVar Status) }
-
-data Status = Stop | Go
-    deriving Eq
-
-{- | The result of an action unforked by 'unforkAsyncIO'
-
-    At first the result will be unavailable, during which time
-    'await' will block and 'poll' will return 'Nothing'. When
-    the action completes, 'await' will return its result and
-    'poll' will return 'Just'.
--}
-data Future result = Future (MVar.MVar result)
-
--- | Block until an action completes
-await :: Future result -> IO result
-await (Future v) = MVar.readMVar v
-
--- | Returns 'Just' an action's result, or 'Nothing' if the
--- action is not yet complete
-poll :: Future result -> IO (Maybe result)
-poll (Future v) = MVar.tryReadMVar v
-
-data Lock = Lock
-
-unforkAsync :: Unfork a c -> ((a -> c) -> IO b) -> IO b
-unforkAsync Unfork{ unforkedAction, executeOneTask } continue =
-  do
-    run <- do
-        queue <- STM.newTQueueIO
-        stopper <- STM.newTVarIO Go
-        pure Run{ queue, stopper }
-
-    let
-        loop = join (atomically (act <|> done))
-        act = next run <&> \x -> do{ executeOneTask x; loop }
-        done = checkStopped run $> pure ()
-
-    ((), c) <- concurrently loop do
-        x <- continue (unforkedAction run)
-        stop run
-        pure x
-
-    pure c
-
-enqueue :: Run q -> q -> STM ()
-enqueue Run{ queue } = STM.writeTQueue queue
-
-next :: Run q -> STM q
-next Run{ queue } = STM.readTQueue queue
-
-checkStopped :: Run q -> STM ()
-checkStopped Run{ stopper } = do
-    s <- STM.readTVar stopper
-    guard (s == Stop)
-
-stop :: Run q -> IO ()
-stop Run{ stopper } =
-    atomically (STM.writeTVar stopper Stop)
