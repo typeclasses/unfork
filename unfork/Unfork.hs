@@ -3,7 +3,7 @@ module Unfork
     -- * Asynchronous I/O
     unforkAsyncVoidIO,
     unforkAsyncIO,
-    Promise (..),
+    Future (..),
     -- * Asynchronous STM
     unforkAsyncVoidSTM,
     unforkAsyncSTM,
@@ -119,7 +119,7 @@ unforkAsyncSTM action =
 unforkAsyncIO ::
     (task -> IO result)
         -- ^ Action that needs to be run serially
-    -> ((task -> IO (Promise result)) -> IO conclusion)
+    -> ((task -> IO (Future result)) -> IO conclusion)
         -- ^ Continuation with a thread-safe version of the action
     -> IO conclusion
 unforkAsyncIO action =
@@ -128,7 +128,7 @@ unforkAsyncIO action =
     threadSafeAction run arg = do
         resultVar <- newEmptyMVar
         atomically (enqueue run Task{ arg, resultVar })
-        pure (Promise{ block = readMVar resultVar, peek = tryReadMVar resultVar })
+        pure (Future{ await = readMVar resultVar, peek = tryReadMVar resultVar })
     step Task{ arg, resultVar } = do
           b <- action arg
           putMVar resultVar b
@@ -188,7 +188,7 @@ data Task a b = Task{ arg :: !a, resultVar :: !b }
 
 data Run q = Run{ queue :: !(TQueue q), stopper :: !(TVar Bool) }
 
-data Promise result = Promise{ block :: IO result, peek :: IO (Maybe result) }
+data Future result = Future{ await :: IO result, peek :: IO (Maybe result) }
 
 data Lock = Lock
 
