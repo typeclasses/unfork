@@ -20,24 +20,6 @@ import Control.Concurrent.STM.TVar
     (TVar, newTVar, newTVarIO, readTVar, writeTVar)
 
 
-{- ━━━━━━━━━━━━  I/O, with task results discarded  ━━━━━━━━━━━━━━━━
-
-    This is just the same as its STM equivalent, but with an
-    'atomically' thrown in for convenience.
-
--}
-
-unforkAsyncVoidIO ::
-    (task -> IO result)
-        -- ^ Action that needs to be run from a single thread
-    -> ((task -> IO ()) -> IO conclusion)
-        -- ^ Continuation with a thread-safe version of the action
-    -> IO conclusion
-unforkAsyncVoidIO action go =
-    unforkAsyncVoidSTM action \action' ->
-        go \x -> atomically (action' x)
-
-
 {- ━━━━━━━━━━━━  STM, with task results discarded  ━━━━━━━━━━━━━━━━
 
     Discarding results makes this function simpler than those that
@@ -54,7 +36,26 @@ unforkAsyncVoidSTM ::
     -> IO conclusion
 unforkAsyncVoidSTM action = unfork Unfork{ threadSafeAction, step }
   where
-    threadSafeAction = enqueue
+    threadSafeAction run arg = enqueue run arg
+    step a = do{ _ <- action a; pure () }
+
+
+{- ━━━━━━━━━━━━  I/O, with task results discarded  ━━━━━━━━━━━━━━━━
+
+    This is just the same as its STM equivalent, but with an
+    'atomically' thrown in for convenience.
+
+-}
+
+unforkAsyncVoidIO ::
+    (task -> IO result)
+        -- ^ Action that needs to be run from a single thread
+    -> ((task -> IO ()) -> IO conclusion)
+        -- ^ Continuation with a thread-safe version of the action
+    -> IO conclusion
+unforkAsyncVoidIO action = unfork Unfork{ threadSafeAction, step }
+  where
+    threadSafeAction run arg = atomically (enqueue run arg)
     step a = do{ _ <- action a; pure () }
 
 
