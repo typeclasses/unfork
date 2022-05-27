@@ -50,10 +50,10 @@ There are, therefore, three threads of concern to this library:
 
 Non-exceptional termination works as follows:
 
-  - Thread 1 concludes
+  - Thread 1 reaches its normal end and halts
   - Thread 2 finishes processing any remaining queued jobs,
-    then returns
-  - Thread 3 returns
+    then halts
+  - Thread 3 halts
 
 Threads 1 and 2 are “linked”, in the parlance of
 "Control.Concurrent.Async"; if either thread throws an exception,
