@@ -18,5 +18,4 @@ common base
 
 library
     import: base
-    exposed-modules:
-        Unfork
+    exposed-modules: Unfork

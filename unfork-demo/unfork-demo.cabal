@@ -1,0 +1,25 @@
+cabal-version: 3.0
+
+name: unfork-demo
+version: 0
+
+common base
+    default-language: Haskell2010
+    ghc-options: -Wall
+    build-depends: async, base, unfork
+
+library
+    import: base
+    exposed-modules: Demo
+
+executable demo-logging-interleaved
+    import: base
+    build-depends: unfork-demo
+    hs-source-dirs: logging/interleaved
+    main-is: Main.hs
+
+executable demo-logging-unforked
+    import: base
+    build-depends: unfork-demo
+    hs-source-dirs: logging/unforked
+    main-is: Main.hs
