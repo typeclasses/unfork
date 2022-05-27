@@ -40,11 +40,11 @@ unforkAsyncIO   :: (a -> IO b) -> ( ( a -> IO (Future b)       ) -> IO c ) -> IO
 unforkAsyncIO_  :: (a -> IO b) -> ( ( a -> IO ()               ) -> IO c ) -> IO c
 unforkAsyncSTM  :: (a -> IO b) -> ( ( a -> STM (STM (Maybe b)) ) -> IO c ) -> IO c
 unforkAsyncSTM_ :: (a -> IO b) -> ( ( a -> STM ()              ) -> IO c ) -> IO c
---                 │         │    │ │                          │         │
---                 ╰─────────╯    │ ╰──────────────────────────╯         │
---                  Original      │      Unforked action                 │
---                   action       │                                      │
---                                ╰──────────────────────────────────────╯
+--                 |         |    | |                          |         |
+--                 |---------|    | |--------------------------|         |
+--                  Original      |      Unforked action                 |
+--                   action       |                                      |
+--                                |--------------------------------------|
 --                                            Continuation
 ```
 
@@ -115,8 +115,8 @@ The two sync functions are `unforkSyncIO` and `unforkSyncIO_`.
 ```haskell
 unforkSyncIO  :: (a -> IO b) -> IO (a -> IO b )
 unforkSyncIO_ :: (a -> IO b) -> IO (a -> IO ())
---               │         │       │          │
---               ╰─────────╯       ╰──────────╯
+--               |         |       |          |
+--               |---------|       |----------|
 --             Original action    Unforked action
 ```
 
