@@ -115,6 +115,13 @@ way:
     flight, and 'Just' thereafter), and 'await' to block until the
     action completes.
 
+In both cases, an action is either pending or successful. There is no
+representation of a “threw an exception” action result. This is
+because of the “if anything fails, then the entire system fails
+immediately” property discussed in the previous section. If an action
+throws an exception, your continuation won't live long enough to
+witness it anyway because it will be immediately killed.
+
 
 == Synchrony
 
@@ -165,7 +172,15 @@ import qualified Control.Concurrent.STM as STM
 
 -}
 
--- | Turns an IO action into a fire-and-forget STM action
+{- | Turns an IO action into a fire-and-forget STM action
+
+    Related functions:
+
+      - 'unforkAsyncSTM' does not discard the action result, and
+        it allows polling or waiting for completion
+      - 'unforkAsyncIO_' gives the unforked action result as 'IO'
+        instead of 'STM'
+-}
 unforkAsyncSTM_ ::
     (task -> IO result)
         -- ^ Action that needs to be run serially
@@ -190,6 +205,13 @@ unforkAsyncSTM_ action =
 
     For example, use @('unforkAsyncIO_' 'System.IO.putStrLn')@
     to log to 'System.IO.stdout' in a multi-threaded application.
+
+    Related functions:
+
+      - 'unforkAsyncIO' does not discard the action result, and
+        it allows polling or waiting for completion
+      - 'unforkAsyncSTM_' gives the unforked action result as
+        'STM' instead of 'IO'
 -}
 unforkAsyncIO_ ::
     (task -> IO result)
@@ -213,6 +235,17 @@ unforkAsyncIO_ action =
 
 -}
 
+{- | Unforks an action, with the new action's asynchronous result
+     available as @('STM' ('Maybe' result))@
+
+    Related functions:
+
+      - Use 'unforkAsyncSTM_' if you do not need to know when the
+        action has completed or obtain its result value
+      - Use 'unforkAsyncIO' if you do not need the composability
+        of 'STM'
+
+-}
 unforkAsyncSTM ::
     (task -> IO result)
         -- ^ Action that needs to be run serially
@@ -238,6 +271,16 @@ unforkAsyncSTM action =
 
 -}
 
+{- | Unforks an action, with the new action's asynchronous result
+     available as @('IO' ('Future' result))@
+
+    Related functions:
+
+      - Use 'unforkAsyncIO_' if you do not need to know when the
+        action has completed or obtain its result value
+      - Use 'unforkAsyncSTM' if you need the composability of 'STM'
+
+-}
 unforkAsyncIO ::
     (task -> IO result)
         -- ^ Action that needs to be run serially
@@ -268,6 +311,14 @@ unforkAsyncIO action =
 
 -}
 
+{- | Unforks an action by blocking on a global lock.
+
+    Related functions:
+
+      - Use 'unforkSyncIO_' if you don't need the action's result
+      - Consider instead using 'unforkAsyncIO', which uses a queue
+        and a separate thread, to avoid blocking
+-}
 unforkSyncIO ::
     (task -> IO result)
         -- ^ Action that needs to be run serially
@@ -286,6 +337,14 @@ unforkSyncIO action = do
 
 -}
 
+{- | Unforks an action by blocking on a global lock.
+
+    Related functions:
+
+      - Use 'unforkSyncIO' if you need the action's result
+      - Consider instead using 'unforkAsyncIO_', which uses a
+        queue and a separate thread, to avoid blocking
+-}
 unforkSyncIO_ ::
     (task -> IO result)
         -- ^ Action that needs to be run serially
@@ -316,11 +375,21 @@ data Run q =
 data Status = Stop | Go
     deriving Eq
 
+{- | The result of an action unforked by 'unforkAsyncIO'
+
+    At first the result will be unavailable, during which time
+    'await' will block and 'poll' will return 'Nothing'. When
+    the action completes, 'await' will return its result and
+    'poll' will return 'Just'.
+-}
 data Future result = Future (MVar.MVar result)
 
+-- | Block until an action completes
 await :: Future result -> IO result
 await (Future v) = MVar.readMVar v
 
+-- | Returns 'Just' an action's result, or 'Nothing' if the
+-- action is not yet complete
 poll :: Future result -> IO (Maybe result)
 poll (Future v) = MVar.tryReadMVar v
 

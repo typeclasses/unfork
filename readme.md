@@ -107,6 +107,12 @@ respectively. These variables are exposed to the user in a read-only way:
     status (`Nothing` while the action is in flight, and `Just` thereafter),
     and `await` to block until the action completes.
 
+In both cases, an action is either pending or successful. There is no
+representation of a “threw an exception” action result. This is because of the
+“if anything fails, then the entire system fails immediately” property discussed
+in the previous section. If an action throws an exception, your continuation
+won't live long enough to witness it anyway because it will be immediately
+killed.
 
 ## Synchrony
 
