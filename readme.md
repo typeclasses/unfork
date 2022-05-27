@@ -103,7 +103,7 @@ respectively. These variables are exposed to the user in a read-only way:
     whose value is `Nothing` while the action is in flight, and `Just`
     thereafter.
 
-  - `unforkAsyncIO` gives access to its `MVar` via `Future' result`.
+  - `unforkAsyncIO` gives access to its `MVar` via `Future result`.
     The `Future` type offers two functions: `poll` to see the current
     status (`Nothing` while the action is in flight, and `Just` thereafter),
     and `await` to block until the action completes.
