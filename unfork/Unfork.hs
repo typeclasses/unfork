@@ -65,6 +65,8 @@ unforkAsyncSTM_ action =
 -}
 
 -- | Turns an IO action into a fire-and-forget async action
+--
+-- For example, use @('unforkAsyncIO_' 'putStrLn')@ to log to stdout in a multi-threaded application.
 unforkAsyncIO_ ::
     (task -> IO result)
         -- ^ Action that needs to be run serially
