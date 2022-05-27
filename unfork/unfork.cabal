@@ -13,6 +13,7 @@ common base
     build-depends:
         async
       , base
+      , safe-exceptions
       , stm
 
 library
