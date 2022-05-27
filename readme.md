@@ -12,7 +12,6 @@ to run concurrently, unforking prevents things from running concurrently.
 Use one of the functions in the `Unfork` module when you have an action that
 will be used by concurrent threads but needs to run serially.
 
-
 ## Example
 
 A typical use case is a multi-threaded program that writes log messages. If
@@ -33,11 +32,20 @@ unforkAsyncIO_ putStrLn $ \log ->
 
 ## Asynchrony
 
-The four async functions — `unforkAsyncIO`, `unforkAsyncIO_`, `unforkAsyncSTM`,
-`unforkAsyncSTM_` — all internally use a queue. The unforked action does not
-perform the underlying action at all, but instead merely writes to the queue. A
-separate thread reads from the queue and performs the actions, thus ensuring
-that the actions are all performed in one linear sequence.
+The four async functions are `unforkAsyncIO`, `unforkAsyncIO_`, `unforkAsyncSTM`,
+and `unforkAsyncSTM_`.
+
+```haskell
+unforkAsyncIO   :: (a -> IO b) -> ( (a -> IO (Future b))       -> IO c ) -> IO c
+unforkAsyncIO_  :: (a -> IO b) -> ( (a -> IO ())               -> IO c ) -> IO c
+unforkAsyncSTM  :: (a -> IO b) -> ( (a -> STM (STM (Maybe b))) -> IO c ) -> IO c
+unforkAsyncSTM_ :: (a -> IO b) -> ( (a -> STM ())              -> IO c ) -> IO c
+```
+
+These functions all internally use a queue. The unforked action does not perform
+the underlying action at all, but instead merely writes to the queue. A separate
+thread reads from the queue and performs the actions, thus ensuring that the
+actions are all performed in one linear sequence.
 
 There are, therefore, three threads of concern to this library:
 
@@ -96,11 +104,17 @@ respectively. These variables are exposed to the user in a read-only way:
 
 ## Synchrony
 
-The two sync functions are `unforkSyncIO` and `unforkSyncIO_`. These are much
-simpler than their asynchronous counterparts; there is no queue, no new threads
-are spawned, and therefore no continuation-passing is needed. These simply
-produce a variant of the action that is `bracket`ed by acquisition and release
-of an `MVar` to assure mutual exclusion.
+The two sync functions are `unforkSyncIO` and `unforkSyncIO_`.
+
+```haskell
+unforkSyncIO  :: (task -> IO result) -> IO (task -> IO result)
+unforkSyncIO_ :: (task -> IO result) -> IO (task -> IO ())
+```
+
+These are much simpler than their asynchronous counterparts; there is no queue,
+no new threads are spawned, and therefore no continuation-passing is needed.
+These simply produce a variant of the action that is `bracket`ed by acquisition
+and release of an `MVar` to assure mutual exclusion.
 
 The hazard of the synchronous approach is that the locking has a greater
 potential to bottleneck performance.
