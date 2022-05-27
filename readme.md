@@ -12,6 +12,7 @@ to run concurrently, unforking prevents things from running concurrently.
 Use one of the functions in the `Unfork` module when you have an action that
 will be used by concurrent threads but needs to run serially.
 
+
 ## Example
 
 A typical use case is a multi-threaded program that writes log messages. If
@@ -113,6 +114,7 @@ representation of a “threw an exception” action result. This is because of t
 in the previous section. If an action throws an exception, your continuation
 won't live long enough to witness it anyway because it will be immediately
 killed.
+
 
 ## Synchrony
 
