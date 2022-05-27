@@ -7,24 +7,15 @@ common base
     default-language: Haskell2010
     default-extensions:
         BlockArguments
-        GADTs
-        LambdaCase
+        ExistentialQuantification
         NamedFieldPuns
-        NoImplicitPrelude
-        ScopedTypeVariables
-        StrictData
-        TypeApplications
     ghc-options: -Wall
     build-depends:
         async
       , base
-      , safe-exceptions
       , stm
 
 library
     import: base
     exposed-modules:
         Unfork
-    other-modules:
-        RunUntilException
-        TaskQueue
