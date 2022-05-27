@@ -118,10 +118,10 @@ greater potential to bottleneck performance.
 -}
 module Unfork
   (
-    {- * Asynchronous I/O -} unforkAsyncIO, unforkAsyncIO_,
-                             Future (..),
-    {- * Asynchronous STM -} unforkAsyncSTM, unforkAsyncSTM_,
-    {- * Synchronous I/O  -} unforkSyncIO, unforkSyncIO_,
+    {- * Asynchronous I/O -} unforkAsyncIO_, unforkAsyncIO,
+                             Future, await, poll,
+    {- * Asynchronous STM -} unforkAsyncSTM_, unforkAsyncSTM,
+    {- * Synchronous I/O  -} unforkSyncIO_, unforkSyncIO,
   ) where
 
 import Prelude (IO, Maybe (..), Eq ((==)), pure)
@@ -168,8 +168,8 @@ unforkAsyncSTM_ action =
 
 {- | Turns an IO action into a fire-and-forget async action
 
-    For example, use @('unforkAsyncIO_' 'putStrLn')@ to log to
-    stdout in a multi-threaded application.
+    For example, use @('unforkAsyncIO_' 'System.IO.putStrLn')@
+    to log to 'System.IO.stdout' in a multi-threaded application.
 -}
 unforkAsyncIO_ ::
     (task -> IO result)
@@ -230,8 +230,7 @@ unforkAsyncIO action =
     unforkedAction run arg = do
         resultVar <- MVar.newEmptyMVar
         atomically (enqueue run Task{ arg, resultVar })
-        pure Future{ await = MVar.readMVar resultVar,
-                     poll = MVar.tryReadMVar resultVar }
+        pure (Future resultVar)
     executeOneTask Task{ arg, resultVar } = do
           b <- action arg
           MVar.putMVar resultVar b
@@ -297,8 +296,13 @@ data Run q =
 data Status = Stop | Go
     deriving Eq
 
-data Future result =
-    Future{ await :: IO result, poll :: IO (Maybe result) }
+data Future result = Future (MVar.MVar result)
+
+await :: Future result -> IO result
+await (Future v) = MVar.readMVar v
+
+poll :: Future result -> IO (Maybe result)
+poll (Future v) = MVar.tryReadMVar v
 
 data Lock = Lock
 
