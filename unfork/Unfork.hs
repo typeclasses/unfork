@@ -1,15 +1,15 @@
 module Unfork
   (
     -- * Asynchronous I/O
-    unforkAsyncVoidIO,
     unforkAsyncIO,
+    unforkAsyncIO_,
     Future (..),
     -- * Asynchronous STM
-    unforkAsyncVoidSTM,
     unforkAsyncSTM,
+    unforkAsyncSTM_,
     -- * Synchronous I/O
     unforkSyncIO,
-    unforkSyncVoidIO,
+    unforkSyncIO_,
   ) where
 
 import Prelude (IO, Bool (..), Maybe (..), pure)
@@ -44,13 +44,13 @@ import Control.Concurrent.STM.TVar
 -}
 
 -- | Turns an IO action into a fire-and-forget STM action
-unforkAsyncVoidSTM ::
+unforkAsyncSTM_ ::
     (task -> IO result)
         -- ^ Action that needs to be run serially
     -> ((task -> STM ()) -> IO conclusion)
         -- ^ Continuation with a thread-safe version of the action
     -> IO conclusion
-unforkAsyncVoidSTM action =
+unforkAsyncSTM_ action =
     unforkAsync Unfork{ threadSafeAction, step }
   where
     threadSafeAction run arg = enqueue run arg
@@ -65,13 +65,13 @@ unforkAsyncVoidSTM action =
 -}
 
 -- | Turns an IO action into a fire-and-forget async action
-unforkAsyncVoidIO ::
+unforkAsyncIO_ ::
     (task -> IO result)
         -- ^ Action that needs to be run serially
     -> ((task -> IO ()) -> IO conclusion)
         -- ^ Continuation with a thread-safe version of the action
     -> IO conclusion
-unforkAsyncVoidIO action =
+unforkAsyncIO_ action =
     unforkAsync Unfork{ threadSafeAction, step }
   where
     threadSafeAction run arg = atomically (enqueue run arg)
@@ -160,13 +160,13 @@ unforkSyncIO action continue = do
 
 -}
 
-unforkSyncVoidIO ::
+unforkSyncIO_ ::
     (task -> IO result)
         -- ^ Action that needs to be run serially
     -> ((task -> IO ()) -> IO conclusion)
         -- ^ Continuation with a thread-safe version of the action
     -> IO conclusion
-unforkSyncVoidIO action =
+unforkSyncIO_ action =
     unforkSyncIO \x -> do
         _ <- action x
         pure ()
