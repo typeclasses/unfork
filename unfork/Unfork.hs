@@ -35,8 +35,21 @@ Instead, create an unforked version of 'System.IO.putStrLn'.
 
 == Asynchrony
 
-The four async functions — 'unforkAsyncIO', 'unforkAsyncIO_',
-'unforkAsyncSTM', 'unforkAsyncSTM_' — all internally use a queue.
+The four async functions are 'unforkAsyncIO', 'unforkAsyncIO_',
+'unforkAsyncSTM', 'unforkAsyncSTM_'.
+
+> unforkAsyncIO   :: (a -> IO b) -> ( ( a -> IO (Future b)       ) -> IO c ) -> IO c
+> unforkAsyncIO_  :: (a -> IO b) -> ( ( a -> IO ()               ) -> IO c ) -> IO c
+> unforkAsyncSTM  :: (a -> IO b) -> ( ( a -> STM (STM (Maybe b)) ) -> IO c ) -> IO c
+> unforkAsyncSTM_ :: (a -> IO b) -> ( ( a -> STM ()              ) -> IO c ) -> IO c
+>                    |         |    | |                          |         |
+>                    |---------|    | |--------------------------|         |
+>                     Original      |      Unforked action                 |
+>                      action       |                                      |
+>                                   |--------------------------------------|
+>                                               Continuation
+
+These functions all internally use a queue.
 The unforked action does not perform the underlying action at all,
 but instead merely writes to the queue. A separate thread reads
 from the queue and performs the actions, thus ensuring that the
@@ -106,6 +119,13 @@ way:
 == Synchrony
 
 The two sync functions are 'unforkSyncIO' and 'unforkSyncIO_'.
+
+> unforkSyncIO  :: (a -> IO b) -> IO (a -> IO b )
+> unforkSyncIO_ :: (a -> IO b) -> IO (a -> IO ())
+>                  |         |       |          |
+>                  |---------|       |----------|
+>                Original action    Unforked action
+
 These are much simpler than their asynchronous counterparts; there
 is no queue, no new threads are spawned, and therefore no
 continuation-passing is needed. These simply produce a variant of
