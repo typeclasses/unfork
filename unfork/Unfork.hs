@@ -170,14 +170,12 @@ import qualified Control.Concurrent.STM as STM
 
 -}
 
-data Unfork a c =
-    forall q. Unfork
-        { unforkedAction :: !(Run q -> a -> c)
-            -- ^ The unforked version of the action that we
-            --   give to the user-provided continuation
-        , executeOneTask :: !(q -> IO ())
-            -- ^ How the queue worker processes each item
-        }
+data Unfork a c = forall q. Unfork
+  { unforkedAction ::         --   The unforked action that we give
+      !( Run q -> a -> c )    --  to the user-provided continuation
+  , executeOneTask ::
+      !( q -> IO () )   -- How the queue worker processes each item
+  }
 
 data Run q =
     Run{ queue :: !(STM.TQueue q), stopper :: !(STM.TVar Status) }
