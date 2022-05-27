@@ -1,10 +1,10 @@
 module Demo where
 
-import Prelude (IO, String, putStr, show, (*>), (<>))
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (concurrently_)
 import Data.Foldable (for_)
 import Numeric.Natural (Natural)
+import Prelude (IO, String, putStr, show, (*>), (<>))
 
 putStrLnSlow :: String -> IO ()
 putStrLnSlow = r

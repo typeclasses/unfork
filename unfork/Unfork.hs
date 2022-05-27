@@ -151,13 +151,13 @@ module Unfork
     {- * Synchronous I/O  -} unforkSyncIO_, unforkSyncIO,
   ) where
 
-import Prelude (IO, Maybe (..), Eq ((==)), pure)
+import Prelude (Eq ((==)), IO, Maybe (..), pure)
 
 import Control.Applicative ((<|>))
+import Control.Concurrent.Async (concurrently)
 import Control.Exception.Safe (bracket)
 import Control.Monad (guard, join)
 import Control.Monad.STM (STM, atomically)
-import Control.Concurrent.Async (concurrently)
 import Data.Functor (($>), (<&>))
 
 import qualified Control.Concurrent.MVar as MVar
