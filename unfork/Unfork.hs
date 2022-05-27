@@ -20,7 +20,7 @@ import Control.Exception.Safe (bracket)
 
 import Control.Monad (guard)
 
-import Control.Monad.STM (STM, atomically, retry)
+import Control.Monad.STM (STM, atomically)
 
 import Control.Concurrent.Async (concurrently)
 
@@ -90,7 +90,7 @@ unforkAsyncVoidIO action =
 unforkAsyncSTM ::
     (task -> IO result)
         -- ^ Action that needs to be run serially
-    -> ((task -> STM (STM result)) -> IO conclusion)
+    -> ((task -> STM (STM (Maybe result))) -> IO conclusion)
         -- ^ Continuation with a thread-safe version of the action
     -> IO conclusion
 unforkAsyncSTM action =
@@ -99,11 +99,7 @@ unforkAsyncSTM action =
     threadSafeAction run arg = do
         resultVar <- newTVar Nothing
         enqueue run Task{ arg, resultVar }
-        pure do
-            m <- readTVar resultVar
-            case m of
-                Nothing -> retry
-                Just x -> pure x
+        pure (readTVar resultVar)
 
     step Task{ arg, resultVar } = do
         b <- action arg
