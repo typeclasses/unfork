@@ -1,13 +1,13 @@
 module Unfork
   (
-    -- * Asynchronous
-    -- ** I/O
+    -- * Asynchronous I/O
     unforkAsyncVoidIO,
     unforkAsyncIO,
-    -- ** STM
+    Promise (..),
+    -- * Asynchronous STM
     unforkAsyncVoidSTM,
     unforkAsyncSTM,
-    -- * Synchronous
+    -- * Synchronous I/O
     unforkSyncIO,
     unforkSyncVoidIO,
   ) where
@@ -88,11 +88,11 @@ unforkAsyncVoidIO action =
 -}
 
 unforkAsyncSTM ::
-    (a -> IO b)
+    (task -> IO result)
         -- ^ Action that needs to be run serially
-    -> ((a -> STM (STM b)) -> IO c)
+    -> ((task -> STM (STM result)) -> IO conclusion)
         -- ^ Continuation with a thread-safe version of the action
-    -> IO c
+    -> IO conclusion
 unforkAsyncSTM action =
     unforkAsync Unfork{ threadSafeAction, step }
   where
@@ -117,11 +117,11 @@ unforkAsyncSTM action =
 -}
 
 unforkAsyncIO ::
-    (a -> IO b)
+    (task -> IO result)
         -- ^ Action that needs to be run serially
-    -> ((a -> IO (Promise b)) -> IO c)
+    -> ((task -> IO (Promise result)) -> IO conclusion)
         -- ^ Continuation with a thread-safe version of the action
-    -> IO c
+    -> IO conclusion
 unforkAsyncIO action =
     unforkAsync Unfork{ threadSafeAction, step }
   where
@@ -147,11 +147,11 @@ unforkAsyncIO action =
 -}
 
 unforkSyncIO ::
-    (a -> IO b)
+    (task -> IO result)
         -- ^ Action that needs to be run serially
-    -> ((a -> IO b) -> IO c)
+    -> ((task -> IO result) -> IO conclusion)
         -- ^ Continuation with a thread-safe version of the action
-    -> IO c
+    -> IO conclusion
 unforkSyncIO action continue = do
     lock <- newMVar Lock
     continue \x -> do
@@ -165,11 +165,11 @@ unforkSyncIO action continue = do
 -}
 
 unforkSyncVoidIO ::
-    (a -> IO b)
+    (task -> IO result)
         -- ^ Action that needs to be run serially
-    -> ((a -> IO ()) -> IO c)
+    -> ((task -> IO ()) -> IO conclusion)
         -- ^ Continuation with a thread-safe version of the action
-    -> IO c
+    -> IO conclusion
 unforkSyncVoidIO action =
     unforkSyncIO \x -> do
         _ <- action x
@@ -188,7 +188,7 @@ data Task a b = Task{ arg :: !a, resultVar :: !b }
 
 data Run q = Run{ queue :: !(TQueue q), stopper :: !(TVar Bool) }
 
-data Promise a = Promise{ block :: IO a, peek :: IO (Maybe a) }
+data Promise result = Promise{ block :: IO result, peek :: IO (Maybe result) }
 
 data Lock = Lock
 
