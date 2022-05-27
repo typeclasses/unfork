@@ -1,4 +1,16 @@
-module Unfork where
+module Unfork
+  (
+    -- * Asynchronous
+    -- ** I/O
+    unforkAsyncVoidIO,
+    unforkAsyncIO,
+    -- ** STM
+    unforkAsyncVoidSTM,
+    unforkAsyncSTM,
+    -- * Synchronous
+    unforkSyncIO,
+    unforkSyncVoidIO,
+  ) where
 
 import Prelude (IO, Bool (..), Maybe (..), pure)
 
