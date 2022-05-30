@@ -16,7 +16,7 @@ import qualified Control.Concurrent.MVar as MVar
 
 {- |
 
-    Unforks an action by blocking on a global mutex lock
+    Unforks an action by blocking on a mutex lock
 
     Related functions:
 
@@ -37,7 +37,7 @@ unforkSyncIO action = do
 
 {- |
 
-    Unforks an action by blocking on a global mutex lock, discarding the action's result
+    Unforks an action by blocking on a mutex lock, discarding the action's result
 
     Related functions:
 

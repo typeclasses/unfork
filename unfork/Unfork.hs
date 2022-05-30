@@ -72,7 +72,7 @@ In the asynchronous case, the result-discarding functions provide no means of ev
 
 The async functions that do provide results are 'unforkAsyncSTM' and 'unforkAsyncIO'. Internally, each result is stored in a 'Control.Concurrent.STM.TVar' or 'Control.Concurrent.MVar.MVar', respectively. These variables are exposed to the user in a read-only way:
 
-  - 'unforkAsyncSTM' gives access to its 'Control.Concurrent.STM.TVar' via @('STM' ('Maybe' result))@, whose value is 'Nothing' while the action is in flight, and 'Just' thereafter.
+  - 'unforkAsyncSTM' gives access to its 'Control.Concurrent.STM.TVar' via @('Control.Monad.STM.STM' ('Maybe' result))@, whose value is 'Nothing' while the action is in flight, and 'Just' thereafter.
   - 'unforkAsyncIO' gives access to its 'Control.Concurrent.MVar.MVar' via @('Future' result)@. The 'Future' type offers two functions:
     'poll' to see the current status ('Nothing' while the action is in flight, and 'Just' thereafter), and 'await' to block until the action completes.
 
@@ -89,7 +89,7 @@ The two sync functions are 'unforkSyncIO' and 'unforkSyncIO_'.
 >                  |---------|       |----------|
 >                Original action    Unforked action
 
-These are much simpler than their asynchronous counterparts; there is no queue, no new threads are spawned, and therefore no continuation-passing is needed. These simply produce a variant of the action that is 'bracket'ed by acquisition and release of an 'Control.Concurrent.MVar.MVar' to assure mutual exclusion.
+These are much simpler than their asynchronous counterparts; there is no queue, no new threads are spawned, and therefore no continuation-passing is needed. These simply produce a variant of the action that is 'Control.Exception.Safe.bracket'ed by acquisition and release of an 'Control.Concurrent.MVar.MVar' to assure mutual exclusion.
 
 The hazard of the synchronous approach is that the locking has a greater potential to bottleneck performance.
 
