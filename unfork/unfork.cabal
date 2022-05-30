@@ -19,3 +19,12 @@ common base
 library
     import: base
     exposed-modules: Unfork
+    other-modules:
+        Unfork.Async.Core
+        Unfork.Async.WithResult.Future
+        Unfork.Async.WithResult.Task
+        Unfork.Async.WithResult.IO
+        Unfork.Async.WithResult.STM
+        Unfork.Async.FireAndForget.IO
+        Unfork.Async.FireAndForget.STM
+        Unfork.Sync
