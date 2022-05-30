@@ -1,7 +1,27 @@
 cabal-version: 3.0
 
 name: unfork
-version: 0
+version: 1.0.0.0
+category: Concurrency
+synopsis: ...
+
+description: ...
+
+copyright: 2022 Mission Valley Software LLC
+license: Apache-2.0
+license-file: license.txt
+
+author: Chris Martin
+maintainer: Chris Martin, Julie Moronuki
+
+homepage: https://github.com/typeclasses/unfork
+bug-reports: https://github.com/typeclasses/unfork/issues
+
+build-type: Simple
+
+source-repository head
+    type: git
+    location: git://github.com/typeclasses/unfork.git
 
 common base
     default-language: Haskell2010
