@@ -2,10 +2,7 @@
 
 STM, asynchronous, with task results available
 
-To make task results available, we maintain a queue that
-contains not only each the task itself, but also a TVar to
-store its result. Each step of the queue loop runs the action
-and then places the result into the TVar.
+To make task results available, we maintain a queue that contains not only each the task itself, but also a TVar to store its result. Each step of the queue loop runs the action and then places the result into the TVar.
 
 -}
 

@@ -25,8 +25,7 @@ await (Future v) = MVar.readMVar v
 
 {- |
 
-    Returns 'Just' an action's result, or 'Nothing' if the
-    action is not yet complete
+    Returns 'Just' an action's result, or 'Nothing' if the action is not yet complete
 
 -}
 
