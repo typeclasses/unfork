@@ -2,13 +2,14 @@ cabal-version: 3.0
 
 name: unfork
 version: 1.0.0.0
+x-revision: 1
 category: Concurrency
 synopsis: Make any action thread safe
 
 description:
     “Unfork” is the opposite of “fork”; whereas forking allows things to run concurrently, unforking prevents things from running concurrently. Use one of the functions in the "Unfork" module when you have an action that will be used by concurrent threads but needs to run serially.
 
-    A typical use case is a multi-threaded program that writes log messages. If threads use `putStrLn` directly, the strings may be interleaved in the combined output. Instead, create an unforked version of `putStrLn`:
+    A typical use case is a multi-threaded program that writes log messages. If threads use @putStrLn@ directly, the strings may be interleaved in the combined output. Instead, create an unforked version of @putStrLn@:
 
     > import Unfork
     >
@@ -18,7 +19,7 @@ description:
     >         _ -- Within this continuation, use
     >           -- putStrLn' instead of putStrLn
 
-    The new `putStrLn'` function writes to a queue. A separate thread reads from the queue and performs the actions, thus ensuring that the actions are all performed in one linear sequence. The main thread returns after the continuation has returned and the queue is empty. If an exception is raised in either thread, both threads halt and the exception is re-raised in the main thread.
+    The new @putStrLn'@ function writes to a queue. A separate thread reads from the queue and performs the actions, thus ensuring that the actions are all performed in one linear sequence. The main thread returns after the continuation has returned and the queue is empty. If an exception is raised in either thread, both threads halt and the exception is re-raised in the main thread.
 
 copyright: 2022 Mission Valley Software LLC
 license: Apache-2.0
