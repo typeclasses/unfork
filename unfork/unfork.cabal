@@ -18,7 +18,7 @@ description:
     >         _ -- Within this continuation, use
     >           -- putStrLn' instead of putStrLn
 
-    The new putStrLn' function writes to a queue. A separate thread reads from the queue and performs the actions, thus ensuring that the actions are all performed in one linear sequence. The main thread returns after the continuation has returned and the queue is empty. If an exception is raised in either thread, both threads halt and the exception is re-raised in the main thread.
+    The new `putStrLn'` function writes to a queue. A separate thread reads from the queue and performs the actions, thus ensuring that the actions are all performed in one linear sequence. The main thread returns after the continuation has returned and the queue is empty. If an exception is raised in either thread, both threads halt and the exception is re-raised in the main thread.
 
 copyright: 2022 Mission Valley Software LLC
 license: Apache-2.0
