@@ -1,6 +1,6 @@
 {- |
 
-“Unfork” is the opposite of “fork”; whereas forking allows things to run concurrently, unforking prevents things from running concurrently.
+“Unfork” is the opposite of “fork”; whereas forking allows things to run concurrently, unforking prevents things from running concurrently. Use one of the functions in this module when you have an action that will be used by concurrent threads but needs to run serially.
 
 +-----------+------------------+-------------------+
 |           | Result available | Result discarded  |
@@ -11,8 +11,6 @@
 +-----------+------------------+-------------------+
 | Sync I/O  | 'unforkSyncIO'   | 'unforkSyncIO_'   |
 +-----------+------------------+-------------------+
-
-Use one of the functions in this module when you have an action that will be used by concurrent threads but needs to run serially.
 
 
 == Example
