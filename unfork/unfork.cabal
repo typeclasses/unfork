@@ -3,7 +3,7 @@ cabal-version: 3.0
 name: unfork
 version: 1.0.0.0
 category: Concurrency
-synopsis: ...
+synopsis: Make any action thread safe
 
 description: ...
 
