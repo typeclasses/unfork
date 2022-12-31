@@ -1,8 +1,7 @@
 cabal-version: 3.0
 
 name: unfork
-version: 1.0.0.0
-x-revision: 1
+version: 1.0.0.1
 category: Concurrency
 synopsis: Make any action thread safe
 
@@ -31,7 +30,7 @@ maintainer: Chris Martin, Julie Moronuki
 homepage: https://github.com/typeclasses/unfork
 bug-reports: https://github.com/typeclasses/unfork/issues
 
-build-type: Simple
+extra-source-files: *.md
 
 source-repository head
     type: git
@@ -46,8 +45,8 @@ common base
     ghc-options:
         -Wall
     build-depends:
-        async ^>= 2.2.2
-      , base ^>= 4.14 || ^>= 4.15 || ^>= 4.16
+        async ^>= 2.2.4
+      , base ^>= 4.14 || ^>= 4.15 || ^>= 4.16 || ^>= 4.17
       , safe-exceptions ^>= 0.1.7
       , stm ^>= 2.5
 
