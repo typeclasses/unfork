@@ -3,6 +3,7 @@ let
 sources = import ./nix/sources.nix;
 nixos-22-05 = import sources."nixos-22.05" {};
 nixos-22-11 = import sources."nixos-22.11" {};
+nixos-unstable = import sources."nixos-unstable" {};
 inherit (nixos-22-11) haskell lib symlinkJoin;
 inherit (lib) fold composeExtensions concatMap attrValues;
 
@@ -30,6 +31,10 @@ ghc."9.2" = nixos-22-11.haskell.packages.ghc92.override (old: {
 });
 
 ghc."9.4" = nixos-22-11.haskell.packages.ghc94.override (old: {
+    overrides = combineOverrides old [ sourceOverrides depOverrides ];
+});
+
+ghc."9.6" = nixos-unstable.haskell.packages.ghc96.override (old: {
     overrides = combineOverrides old [ sourceOverrides depOverrides ];
 });
 
